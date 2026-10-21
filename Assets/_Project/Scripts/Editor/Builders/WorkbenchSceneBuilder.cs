@@ -36,8 +36,17 @@ namespace PhoneRepair.EditorTools
         public static void Build(GameObject phonePrefab, GameObject environmentPrefab, VolumeProfile volumeProfile,
             Material highlightMaterial, IReadOnlyList<ToolDefinition> tools)
         {
+            if (tools == null || tools.Count == 0 || tools.Any(t => ReferenceEquals(t, null)))
+            {
+                throw new System.ArgumentException("The tool belt needs every starting tool asset.", nameof(tools));
+            }
+
+            // Opening a new scene unloads assets that only C# variables point at; remember the tools
+            // by instance id and fetch them again afterwards (that reloads them from disk).
+            int[] toolIds = tools.Select(t => t.GetInstanceID()).ToArray();
             EditorAssetUtil.EnsureFolder(Path.GetDirectoryName(ScenePath));
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            List<Object> liveTools = toolIds.Select(EditorUtility.InstanceIDToObject).ToList();
 
             // --- Lighting & environment ------------------------------------------------------
             Transform lighting = new GameObject("Lighting").transform;
@@ -101,15 +110,19 @@ namespace PhoneRepair.EditorTools
                 ("toolBelt", toolBelt));
             EditorAssetUtil.Wire(raycaster, ("targetCamera", camera));
             EditorAssetUtil.Wire(highlighter, ("selection", selection), ("highlightMaterial", highlightMaterial));
-            EditorAssetUtil.WireArray(toolBelt, "tools", tools.Cast<Object>().ToList());
+            if (liveTools.Any(t => t == null))
+            {
+                throw new System.InvalidOperationException("A tool asset could not be reloaded after opening the new scene.");
+            }
+
+            EditorAssetUtil.WireArray(toolBelt, "tools", liveTools);
             EditorAssetUtil.Wire(feedback, ("sfx", sfx), ("highlighter", highlighter), ("mover", mover));
             EditorAssetUtil.Wire(repair,
                 ("phone", phone.GetComponent<PhoneDevice>()),
                 ("toolBelt", toolBelt),
                 ("mover", mover),
                 ("partsArea", partsArea),
-                ("feedback", feedback),
-                ("viewCamera", camera));
+                ("feedback", feedback));
             EditorAssetUtil.Wire(presenter,
                 ("toolBelt", toolBelt),
                 ("repair", repair),

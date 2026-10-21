@@ -65,13 +65,11 @@ namespace PhoneRepair.Repair
         [SerializeField] private PartMover mover;
         [SerializeField] private PartsArea partsArea;
         [SerializeField] private RepairFeedback feedback;
-        [Tooltip("Camera the player sees through (screw minigame reads the cursor around the screw on screen).")]
-        [SerializeField] private Camera viewCamera;
 
         [Header("Screwdriver")]
         [Tooltip("Turns per second while just holding the button.")]
         [SerializeField, Min(0f)] private float holdTurnsPerSecond = 0.6f;
-        [Tooltip("Extra turns per full circle of the cursor around the screw.")]
+        [Tooltip("Extra turns per full circle of the cursor around the point where the button went down.")]
         [SerializeField, Min(0f)] private float turnsPerMouseCircle = 1f;
         [Tooltip("How far a screw rises (metres) as it loosens, before it pops out.")]
         [SerializeField, Min(0f)] private float screwRise = 0.0012f;
@@ -110,6 +108,7 @@ namespace PhoneRepair.Repair
             public Quaternion StartLocalRotation;
             public Vector3 ContactLocal;
             public Vector3 NormalLocal = Vector3.up;
+            public Vector2 PressPointer;
             public float LastTickTurns;
         }
 
@@ -232,6 +231,26 @@ namespace PhoneRepair.Repair
             return hintCache;
         }
 
+        /// <summary>Tooltip while an action runs: what to keep doing (the screwdriver teaches its circle gesture).</summary>
+        public HoverHint DescribeActive()
+        {
+            if (active == null || active.Part == null)
+            {
+                return HoverHint.None;
+            }
+
+            if (active.Phase == Phase.Turning)
+            {
+                return new HoverHint(active.Part.ScrewDirection >= 0
+                    ? "Circle counter-clockwise to loosen faster"
+                    : "Circle clockwise to tighten faster", InteractionTone.Ready);
+            }
+
+            PartDefinition definition = active.Part.Definition;
+            string verb = active.Direction == RepairDirection.Detach ? definition.DetachVerb : definition.AttachVerb;
+            return new HoverHint($"Hold · {verb}", InteractionTone.Ready);
+        }
+
         private static RepairDirection ChooseDirection(PhonePart part)
         {
             switch (part.State)
@@ -253,8 +272,13 @@ namespace PhoneRepair.Repair
 
         // ------------------------------------------------------------------ running
 
-        /// <summary>Start working the part under the cursor. <paramref name="hit"/> is where the press landed.</summary>
-        public RepairBeginResult Begin(Interactable target, RaycastHit hit)
+        /// <summary>
+        /// Start working the part under the cursor. <paramref name="hit"/> is where the press landed;
+        /// <paramref name="pointer"/> is the cursor (screen pixels) the screwdriver circles around.
+        /// The circle is centred where the button went down, not on the screw itself, because a screw
+        /// fetched from the tray may land somewhere off-screen.
+        /// </summary>
+        public RepairBeginResult Begin(Interactable target, RaycastHit hit, Vector2 pointer)
         {
             if (active != null)
             {
@@ -287,6 +311,7 @@ namespace PhoneRepair.Repair
                 StartLocalRotation = t.localRotation,
                 ContactLocal = hit.collider != null ? t.InverseTransformPoint(hit.point) : Vector3.zero,
                 NormalLocal = hit.collider != null ? t.InverseTransformDirection(hit.normal) : Vector3.up,
+                PressPointer = pointer,
             };
 
             if (part.Definition.Interaction == PartInteraction.Screw)
@@ -449,19 +474,8 @@ namespace PhoneRepair.Repair
 
         private bool TickScrew(PhonePart part, Vector2 pointer, float deltaTime)
         {
-            if (viewCamera == null)
-            {
-                return false;
-            }
-
             PartDefinition definition = part.Definition;
-            Vector3 screen = viewCamera.WorldToScreenPoint(part.transform.position);
-            if (screen.z <= 0f)
-            {
-                return true;
-            }
-
-            float turns = tracker.Step(pointer, new Vector2(screen.x, screen.y), deltaTime, part.ScrewDirection) * Speed;
+            float turns = tracker.Step(pointer, active.PressPointer, deltaTime, part.ScrewDirection) * Speed;
             float totalTurns = Mathf.Max(0.25f, definition.ScrewTurns);
             part.Looseness = Mathf.Clamp01(part.Looseness + part.ScrewDirection * turns / totalTurns);
             if (part.State == PartState.Secured && part.Looseness > 0f)

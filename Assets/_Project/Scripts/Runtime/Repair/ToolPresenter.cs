@@ -46,7 +46,10 @@ namespace PhoneRepair.Repair
             }
 
             Instance instance = GetInstance(tool);
-            bool engaged = repair != null && repair.TryGetToolPose(out Vector3 tip, out Vector3 axis, out float spin);
+            Vector3 tip = default;
+            Vector3 axis = Vector3.up;
+            float spin = 0f;
+            bool engaged = repair != null && repair.TryGetToolPose(out tip, out axis, out spin);
             if (!engaged)
             {
                 spin = 0f;

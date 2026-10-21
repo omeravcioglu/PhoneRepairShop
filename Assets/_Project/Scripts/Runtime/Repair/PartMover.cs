@@ -53,6 +53,7 @@ namespace PhoneRepair.Repair
         private sealed class SquashTween
         {
             public Transform Target;
+            public Vector3 Base;
             public float Amount, Elapsed;
         }
 
@@ -126,8 +127,16 @@ namespace PhoneRepair.Repair
         /// <summary>Little squash-and-stretch pop (landing, tightening).</summary>
         public void Squash(Transform target, float amount = -1f)
         {
-            squashes.RemoveAll(s => s.Target == target);
-            squashes.Add(new SquashTween { Target = target, Amount = amount < 0f ? landingSquash : amount });
+            if (target == null)
+            {
+                return;
+            }
+
+            // restarting mid-squash keeps the original rest scale
+            SquashTween running = squashes.Find(s => s.Target == target);
+            Vector3 rest = running != null ? running.Base : target.localScale;
+            squashes.Remove(running);
+            squashes.Add(new SquashTween { Target = target, Base = rest, Amount = amount < 0f ? landingSquash : amount });
         }
 
         private void Update()
@@ -212,10 +221,10 @@ namespace PhoneRepair.Repair
                 s.Elapsed += deltaTime;
                 float u = Mathf.Clamp01(s.Elapsed / squashSeconds);
                 float k = Mathf.Sin(u * Mathf.PI) * s.Amount;
-                s.Target.localScale = new Vector3(1f + k, 1f - k, 1f + k);
+                s.Target.localScale = Vector3.Scale(s.Base, new Vector3(1f + k, 1f - k, 1f + k));
                 if (u >= 1f)
                 {
-                    s.Target.localScale = Vector3.one;
+                    s.Target.localScale = s.Base;
                     squashes.RemoveAt(i);
                 }
             }
@@ -248,9 +257,11 @@ namespace PhoneRepair.Repair
                 }
             }
 
-            if (squashes.RemoveAll(s => s.Target == target) > 0)
+            SquashTween squash = squashes.Find(s => s.Target == target);
+            if (squash != null)
             {
-                target.localScale = Vector3.one;
+                target.localScale = squash.Base;
+                squashes.Remove(squash);
             }
         }
 

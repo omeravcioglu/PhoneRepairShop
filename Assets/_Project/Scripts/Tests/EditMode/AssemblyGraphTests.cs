@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using PhoneRepair.Devices;
 using UnityEditor;
@@ -120,7 +121,7 @@ namespace PhoneRepair.Tests
         }
 
         [Test]
-        public void CoverCannotGoBackOverAPartThatIsStillOut_ButCanCloseAnEmptyPhone()
+        public void CoverCanCloseOverAMissingBattery_ButThenBlocksIt()
         {
             AssemblyGraph g = MochiOne();
             RemoveScrewsAndCover(g);
@@ -130,15 +131,34 @@ namespace PhoneRepair.Tests
             // Physically fine (nothing blocks the cover); the power-on test in M3 will complain instead.
             Assert.That(g.CanAttach("BackCover").Allowed, Is.True);
             g.SetState("BackCover", PartState.Secured);
-            Assert.That(g.CanAttach("Battery").Allowed, Is.False, "the cover is in the way now");
+
+            RuleCheck check = g.CanAttach("Battery");
+            Assert.That(check.Allowed, Is.False, "the cover is in the way now");
+            Assert.That(check.Reason, Does.Contain("pry off"));
         }
 
         [Test]
-        public void EveryPart_CanComeOffAndGoBackInSomeOrder()
+        public void PartsSittingOnAPart_AlsoKeepItFromComingOut()
+        {
+            // "A is mounted on B" must come with "B is blocked by A", or B could be pulled out from
+            // under A and the reverse order would no longer rebuild the phone.
+            AssemblyGraph g = MochiOne();
+            foreach (AssemblyGraph.Node node in g.Nodes)
+            {
+                foreach (string baseId in node.MountedOn)
+                {
+                    Assert.That(g.TryGet(baseId, out AssemblyGraph.Node basePart), Is.True, baseId);
+                    Assert.That(basePart.BlockedBy, Does.Contain(node.Id), $"{node.Id} sits on {baseId}");
+                }
+            }
+        }
+
+        [Test]
+        public void EveryPart_ComesOff_AndTheReverseOrderRebuildsThePhone()
         {
             AssemblyGraph g = MochiOne();
+            var order = new List<AssemblyGraph.Node>();
 
-            // greedy teardown
             for (bool progress = true; progress;)
             {
                 progress = false;
@@ -150,6 +170,7 @@ namespace PhoneRepair.Tests
                     }
 
                     g.SetState(node.Id, node.Style == DetachStyle.ReleaseInPlace ? PartState.Loose : PartState.Removed);
+                    order.Add(node);
                     progress = true;
                 }
             }
@@ -159,25 +180,16 @@ namespace PhoneRepair.Tests
                 Assert.That(node.Style == DetachStyle.Fixed || node.IsDetached, Is.True, $"{node.Id} could never be taken off");
             }
 
-            // greedy rebuild
-            for (bool progress = true; progress;)
+            for (int i = order.Count - 1; i >= 0; i--)
             {
-                progress = false;
-                foreach (AssemblyGraph.Node node in g.Nodes)
-                {
-                    if (node.State == PartState.Secured || !g.CanAttach(node.Id).Allowed)
-                    {
-                        continue;
-                    }
-
-                    g.SetState(node.Id, PartState.Secured);
-                    progress = true;
-                }
+                RuleCheck check = g.CanAttach(order[i].Id);
+                Assert.That(check.Allowed, Is.True, $"{order[i].Id}: {check.Reason}");
+                g.SetState(order[i].Id, PartState.Secured);
             }
 
             foreach (AssemblyGraph.Node node in g.Nodes)
             {
-                Assert.That(node.State, Is.EqualTo(PartState.Secured), $"{node.Id} could never go back on");
+                Assert.That(node.State, Is.EqualTo(PartState.Secured), node.Id);
             }
         }
     }

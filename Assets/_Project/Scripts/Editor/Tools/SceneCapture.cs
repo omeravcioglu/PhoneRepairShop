@@ -96,6 +96,17 @@ namespace PhoneRepair.EditorTools
             // --- Milestone 2: opened up, parts laid out ----------------------------------------------
             if (area != null)
             {
+                // Outside Play mode Unity refuses to reparent children of prefab instances; unpack the
+                // in-memory copies (never saved) so parts can move onto the mat and into the tray.
+                UnpackInMemory(device.gameObject);
+                foreach (PartsArea.Slot slot in area.Slots)
+                {
+                    if (slot.Anchor != null)
+                    {
+                        UnpackInMemory(slot.Anchor.gameObject);
+                    }
+                }
+
                 foreach (string id in new[] { "Screw_01", "Screw_02", "Screw_03", "Screw_04", "BackCover" })
                 {
                     Remove(device, area, FindPart(device, id));
@@ -124,6 +135,15 @@ namespace PhoneRepair.EditorTools
 
             pivot.rotation = rest;
             // The scene is intentionally not saved: captures never modify it.
+        }
+
+        private static void UnpackInMemory(GameObject member)
+        {
+            GameObject root = PrefabUtility.GetOutermostPrefabInstanceRoot(member);
+            if (root != null)
+            {
+                PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            }
         }
 
         private static void Remove(PhoneDevice device, PartsArea area, PhonePart part)

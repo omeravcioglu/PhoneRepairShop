@@ -9,7 +9,7 @@ namespace PhoneRepair.Repair
     /// <summary>
     /// Where removed parts go: compartments of the screw tray for fasteners, marked spots on the
     /// mat for everything else. Picks the smallest free spot a part fits (turning it 90° if that
-    /// helps) and lays it down the way it sits in a face-up phone; screws lie on their side.
+    /// helps) and lays it down the way the player last saw it in the phone; screws lie on their side.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class PartsArea : MonoBehaviour
@@ -122,7 +122,7 @@ namespace PhoneRepair.Repair
         {
             Quaternion rest = fastener
                 ? Quaternion.Euler(0f, 35f + 47f * slotIndex, 90f) // on its side, each one at its own angle
-                : part.InstalledLocalRotation;                     // as it lies in a face-up phone
+                : LyingAsSeen(part, slot.anchor);
 
             for (int attempt = 0; attempt < 2; attempt++)
             {
@@ -142,6 +142,18 @@ namespace PhoneRepair.Repair
 
             pose = default;
             return false;
+        }
+
+        /// <summary>
+        /// Flat on the spot the way it sat in the phone; if the phone lies on its screen, the part
+        /// is turned over too, so a cover taken off the back lands outside-up, as the player saw it.
+        /// </summary>
+        private static Quaternion LyingAsSeen(PhonePart part, Transform anchor)
+        {
+            Transform phone = part.InstalledParent;
+            bool phoneFaceDown = phone != null && Vector3.Dot(phone.up, anchor.up) < 0f;
+            Quaternion turnOver = phoneFaceDown ? Quaternion.AngleAxis(180f, Vector3.forward) : Quaternion.identity;
+            return turnOver * part.InstalledLocalRotation;
         }
     }
 }

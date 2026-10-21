@@ -80,12 +80,13 @@ namespace PhoneRepair.Tests
 
         private static PartsArea MakeArea(out GameObject root)
         {
-            root = new GameObject("Area");
-            var area = root.AddComponent<PartsArea>();
+            var areaRoot = new GameObject("Area");
+            root = areaRoot;
+            var area = areaRoot.AddComponent<PartsArea>();
             Transform Spot(string n, float x)
             {
                 var t = new GameObject(n).transform;
-                t.SetParent(root.transform, false);
+                t.SetParent(areaRoot.transform, false);
                 t.localPosition = new Vector3(x, 0f, 0f);
                 return t;
             }

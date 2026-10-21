@@ -173,7 +173,15 @@ namespace PhoneRepair.Workbench
                 selection.SetHovered(hovered);
             }
 
-            selection.SetHint(repair != null ? repair.DescribeHover(selection.Hovered) : HoverHint.None);
+            HoverHint hint = HoverHint.None;
+            if (repair != null)
+            {
+                hint = gesture == Gesture.Repairing && repair.IsBusy
+                    ? repair.DescribeActive()
+                    : repair.DescribeHover(selection.Hovered);
+            }
+
+            selection.SetHint(hint);
         }
 
         private void HandleGestures(Vector2 pointer, bool overUI, Transform viewer)
@@ -191,7 +199,7 @@ namespace PhoneRepair.Workbench
                     if (pressTarget != null)
                     {
                         selection.Select(pressTarget);
-                        if (repair != null && repair.Begin(pressTarget, hoverPick.Hit) == RepairBeginResult.Started)
+                        if (repair != null && repair.Begin(pressTarget, hoverPick.Hit, pointer) == RepairBeginResult.Started)
                         {
                             gesture = Gesture.Repairing;
                         }

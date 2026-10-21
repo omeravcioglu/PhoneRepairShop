@@ -61,6 +61,6 @@ No Asset Store content. The only third-party content is **TextMesh Pro's** essen
 
 ## About this repository
 
-This public repository is a **showcase**. It contains the documentation and the **63 source files I wrote** for this project. The complete Unity project, with the models, the generated .blend files and its Unity Cloud link, is kept in a private repository.
+This public repository is a **showcase**. It contains the documentation and the **105 source files I wrote** for this project. The complete Unity project, with the models, the generated .blend files and its Unity Cloud link, is kept in a private repository.
 
 Copyright © Omer Avcioglu (McHunter Studio). **All rights reserved.** Viewing only; see [LICENSE](LICENSE).

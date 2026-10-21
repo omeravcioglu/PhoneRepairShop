@@ -13,13 +13,14 @@ PhoneRepairShop/
 ├─ Assets/
 │  ├─ _Project/                     everything we author (underscore = sorted first, separate from store assets)
 │  │  ├─ Art/
-│  │  │  ├─ Materials/  Phone/ Environment/ FX/
-│  │  │  ├─ Models/     Phones/<Model>/  Environment/  (Tools/ Characters/ later)
+│  │  │  ├─ Materials/  Phone/ Environment/ Tools/ FX/
+│  │  │  ├─ Models/     Phones/<Model>/  Environment/  Tools/  (Characters/ later)
 │  │  │  ├─ Shaders/    InteractableHighlight.shader
-│  │  │  └─ UI/         UI_RoundedRect.png
+│  │  │  └─ UI/         UI_RoundedRect.png, UI_Ring.png (generated)
 │  │  ├─ Data/                      ScriptableObject *instances* = game content
-│  │  │  └─ Phones/MochiOne/        PHN_MochiOne_Model.asset, Parts/PRT_*.asset
-│  │  │     (Tools/ Faults/ Customers/ Upgrades/ arrive in M2-M5)
+│  │  │  ├─ Phones/MochiOne/        PHN_MochiOne_Model.asset, Parts/PRT_*.asset
+│  │  │  └─ Tools/                  TOOL_Hands, TOOL_Screwdriver, TOOL_Spudger, TOOL_SuctionCup
+│  │  │     (Faults/ Customers/ Upgrades/ arrive in M3-M5)
 │  │  ├─ Prefabs/   Phones/ Environment/ (Tools/ UI/ Systems/ later)
 │  │  ├─ Scenes/    Sandbox/M1_Workbench.unity   (Game/Shop.unity in M4)
 │  │  ├─ Settings/  Rendering/  (URP asset, renderer, volume profiles)
@@ -30,8 +31,10 @@ PhoneRepairShop/
 │  │     │  ├─ Interaction/   picking, hover/select, glow    (Interactable, SelectionController...)
 │  │     │  ├─ Devices/       phones & parts (data + runtime) (PhoneDevice, PhonePart, *Definition)
 │  │     │  ├─ Workbench/     repair-bench behaviour         (WorkbenchController, InspectionTurntable)
+│  │     │  ├─ Repair/        tools, repair verbs, parts tray (RepairInteractor, ToolBelt, PartsArea, PartMover...)
+│  │     │  ├─ Audio/         placeholder sound effects      (SfxPlayer, ProceduralSfx)
 │  │     │  ├─ UI/            HUD widgets
-│  │     │  └─ (Repair/ Diagnosis/ Minigames/ Customers/ Economy/ Save/ in later milestones)
+│  │     │  └─ (Diagnosis/ Minigames/ Customers/ Economy/ Save/ in later milestones)
 │  │     ├─ Editor/    PhoneRepair.Editor.asmdef  (setup, prefab/scene builders, import rules, capture)
 │  │     └─ Tests/     EditMode/  PlayMode/
 │  ├─ TextMesh Pro/                 Unity-managed essentials
@@ -56,9 +59,9 @@ The key idea: **a phone is data plus a prefab, never custom code.** Every phone 
 
 | Asset | Holds | Milestone |
 |---|---|---|
-| `PartDefinition` | *type* of part: id, name, category, description (later: price, icon, compatible models, spare prefab) | M1 ✅ |
-| `PhoneModelDefinition` | model id, brand, name, assembled prefab, **slots** (model object name → PartDefinition) | M1 ✅ |
-| `ToolDefinition` | tool id, icon, which **actions** it enables (Unscrew, Pry, Unplug, Lift, Clean, Measure), speed, price | M2 |
+| `PartDefinition` | *type* of part: id, name, category, description · **repair block**: detach style (fixed / remove / release in place), interaction (hold / screw), tool kind per direction, verbs, times, screw turns, removal direction, hinge (later: price, icon, compatible models, spare prefab) | M1 ✅ · M2 ✅ |
+| `PhoneModelDefinition` | model id, brand, name, assembled prefab, **slots** (model object name → PartDefinition, + `blockedBy` / `mountedOn` rules) | M1 ✅ · M2 ✅ |
+| `ToolDefinition` | tool id, name, **kind** (Hands, Screwdriver, Spudger, SuctionCup; parts ask for a kind), 3D model, speed multiplier (later: icon, price) | M2 ✅ |
 | `FaultDefinition` | symptoms, affected part category, visibility (visible/hidden), fix type (replace/clean/reconnect), readings per diagnostic tool | M3 |
 | `CustomerDefinition` / `RepairJobDefinition` | portrait, dialogue lines, phone + faults, budget, patience | M4 |
 | `UpgradeDefinition` | cost, unlock condition, effect (tool tier, speed multiplier, auto-action) | M5 |
@@ -66,20 +69,21 @@ The key idea: **a phone is data plus a prefab, never custom code.** Every phone 
 ### Runtime (components on the phone prefab, added automatically by `PhonePrefabBuilder`)
 
 ```
-PHN_MochiOne (PhoneDevice)            model definition + part index      (M2: assembly rules)
+PHN_MochiOne (PhoneDevice)            model definition + part index + assembly state (AssemblyGraph)
  ├─ Screw_01 (PhonePart, Interactable, SphereCollider)
  ├─ BackCover (PhonePart, Interactable, MeshCollider)
  │   └─ BackCover_Logo                decorative child, highlights with its part
- ├─ BatteryConnector (PhonePart, Interactable, BoxCollider)   pivot = hinge
+ ├─ Battery (PhonePart, Interactable, MeshCollider)
+ │   └─ BatteryConnector (PhonePart, Interactable, BoxCollider)   pivot = hinge; rides along with the battery
  └─ ...
 ```
 
-* **`PhonePart`**: one slot in one phone. M2 adds `AttachmentState { Attached, Detached, Removed }` plus two lists:
-  * `blockedBy`: parts that must be detached before this one can come off (BackCover ← 4 screws; Battery ← BackCover + BatteryConnector; Screen ← DisplayConnector).
-  * `mountedOn`: what must be attached for this one to go back on (screws need the cover; the battery connector needs the battery).
-* **`PhoneDevice`**: answers `CanDetach(part, out reason)` and `CanAttach(part, out reason)` from those lists. This one generic rule set covers every phone. Reassembly is the reverse order for free.
-* **Repair actions (M2):** `(selected tool, clicked part)` → `RepairAction` (Unscrew, PryOff, Unplug, Lift, Install...) → validated by `PhoneDevice` → runs a **minigame** or a short animation → changes the part's state.
-* **Invalid actions** return a human reason ("Take out the 4 screws first"). The UI plays the "nope" feedback: a part wiggle, a red flash in the highlighter, a tooltip, and a sound.
+* **`PhonePart`**: one slot in one phone. It remembers its installed pose, a screw's looseness, and a busy flag while it flies. Its state (`Secured / Loose / Removed`) lives in the device's `AssemblyGraph`, and each slot in the `PhoneModelDefinition` carries two lists (M2 ✅):
+  * `blockedBy`: parts that must be off first (BackCover ← 4 screws; Battery ← BackCover + BatteryConnector; Screen ← DisplayConnector).
+  * `mountedOn`: what must be in place before this one can go back on (screws need the cover; the battery connector needs the battery).
+* **`PhoneDevice`**: answers `CanDetach(part)` / `CanAttach(part)` with a `RuleCheck(Allowed, Reason)` from those lists. One generic rule set covers every phone, and the reverse order rebuilds it (a content test checks that every mount is mirrored by a blocker).
+* **Repair actions (M2 ✅):** (tool in hand, pressed part) → `RepairInteractor` plans it (direction, tool kind, rules, room on the mat) → a hold action or the screw minigame → `PhoneDevice.SetState` → `PartMover` flies the part to the `PartsArea` (mat spots, screw tray) or back home.
+* **Invalid actions** return a human reason ("First: unscrew P2 Mochi Screw (×4)"). The hover tooltip shows it in red before you even press; pressing plays the "nope": a part wiggle, a red flash, a sound and a toast. A tool that doesn't fit the part just inspects it.
 * **Faults (M3)** are runtime `FaultInstance`s attached to parts (`Screen: CrackedGlass`, `Battery: Dead`). Visible ones are discovered by inspecting; hidden ones by tools. A repair succeeds when the power-on test finds no active faults and everything is attached.
 * **Save data (M5)** stores part *ids* and slot *ids* (stable strings), never asset references.
 
@@ -93,7 +97,7 @@ PHN_MochiOne (PhoneDevice)            model definition + part index      (M2: as
 
 ## 3. Minimum C# scripts
 
-✅ = implemented and tested in Milestone 1.
+✅ = implemented and tested (Milestones 1-2).
 
 | Area | Scripts | When |
 |---|---|---|
@@ -102,18 +106,20 @@ PHN_MochiOne (PhoneDevice)            model definition + part index      (M2: as
 | Interaction | `Interactable`, `InspectionInfo`, `InteractionRaycaster`, `SelectionController`, `InteractionHighlighter` ✅ | M1 |
 | Devices | `PartCategory`, `PartDefinition`, `PhoneModelDefinition`, `PhoneDevice`, `PhonePart` ✅ | M1 (+rules M2) |
 | Workbench | `WorkbenchController`, `InspectionTurntable` ✅ | M1 |
-| UI | `SelectionInfoPanel`, `HoverTooltip` ✅ · `ToolBar`, `MoneyLabel`, `DialogueBox` | M1 · M2-M5 |
-| Repair | `ToolDefinition`, `ToolBelt`, `RepairAction`, `PartMover` (lift/remove/attach tweens), `ActionFeedback` | M2 |
-| Minigames | `RepairMinigame` (base), `ScrewMinigame`, `CleaningMinigame` | M2-M3 |
+| UI | `SelectionInfoPanel`, `HoverTooltip` ✅ · `ToolBarView`, `ToolButtonView`, `ToastView`, `ActionProgressView` ✅ · `MoneyLabel`, `DialogueBox` | M1 · M2 · M4-M5 |
+| Devices (rules) | `PartState`, `AssemblyGraph` + `RuleCheck` ✅ | M2 |
+| Repair | `ToolDefinition`, `ToolBelt`, `ToolPresenter`, `RepairInteractor` (+ `RepairPlan`), `ScrewTurnTracker`, `PartsArea`, `PartMover`, `RepairFeedback` ✅ | M2 |
+| Audio | `SfxPlayer`, `ProceduralSfx` (placeholder sounds) ✅ | M2 |
+| Minigames | screw gesture ✅ (inside `RepairInteractor` + `ScrewTurnTracker`) · `RepairMinigame` base, extracted when `CleaningMinigame` arrives | M2 · M3 |
 | Diagnosis | `FaultDefinition`, `FaultInstance`, `DiagnosticReading`, `PowerOnTest` | M3 |
 | Inventory | `PartInventory` (spare parts) | M3 |
 | Shop | `GameModeController` (Shop ↔ Repair), `Station` | M4 |
 | Customers | `CustomerDefinition`, `CustomerController`, `RepairJob` | M4 |
 | Economy | `Wallet`, `PaymentCalculator`, `UpgradeDefinition`, `UpgradeShop` | M5 |
 | Save | `SaveSystem` (JSON) | M5 |
-| Editor | `ProjectSetup`, `PhonePrefabBuilder`, `EnvironmentPrefabBuilder`, `WorkbenchSceneBuilder`, `ModelImportSetup`, `SceneCapture` ✅ | M1 |
+| Editor | `ProjectSetup`, `PhonePrefabBuilder`, `EnvironmentPrefabBuilder`, `WorkbenchSceneBuilder`, `WorkbenchUiBuilder`, `ModelImportSetup`, `MochiOneDataSetup`, `SceneCapture` ✅ · `ToolDataSetup` ✅ | M1 · M2 |
 
-Roughly 45 small scripts for the full prototype. No managers-of-managers, no global singletons, and no event bus until two systems actually need one.
+After M2 there are 49 small runtime and editor scripts (plus 6 test files); expect roughly 75 for the full prototype. No managers-of-managers, no global singletons, and no event bus until two systems actually need one.
 
 ---
 
@@ -122,17 +128,18 @@ Roughly 45 small scripts for the full prototype. No managers-of-managers, no glo
 ### First phone: `PHN_MochiOne` ✅ (generated by `ArtSource/Blender/Scripts/build_phone_mochi_one.py`)
 
 Chubby 74 × 152 × 10.8 mm phone, cream frame, sakura-pink back with a mochi mascot. Separate objects:
-Frame (+ midplate, buttons) · Screen (+ display, front camera, **crack overlay**) · BackCover (+ logo) · Screw_01..04 · Battery (+ label, pull tab) · BatteryConnector · DisplayConnector · Logicboard · ChargingPort · RearCamera · Speaker.
+Frame (+ midplate, buttons) · Screen (+ display, front camera, **crack overlay**, DisplayConnector) · BackCover (+ logo) · Screw_01..04 · Battery (+ label, pull tab, BatteryConnector) · Logicboard · ChargingPort · RearCamera · Speaker.
 Pivots match interactions: screws pivot on their axis, connectors on their hinge. Full table in `ArtSource/Blender/README.md`.
 
-**Still needed for the prototype (M2-M3):** replacement parts (new screen without crack, new battery; mostly duplicates), a removed-screw state for the tray, and an "on" display texture for the power-on test.
+**Still needed for the prototype (M3):** replacement parts (new screen without crack, new battery; mostly duplicates) and an "on" display texture for the power-on test. (Removed screws simply lie on their side in the tray; no extra state needed.)
 
 ### Shop
 
 | Asset | Status |
 |---|---|
-| Workbench corner: desk, repair mat (grid + ruler), desk lamp, pegboard wall, screw tray, mug, succulent | ✅ M1 (`build_env_workbench.py`) |
-| Tools: screwdriver, spudger, tweezers, suction cup, brush, battery tester, multimeter | M2-M3 |
+| Workbench corner: desk, repair mat (grid + ruler), desk lamp, pegboard wall, screw tray (on the mat, 6 compartments, since M2), mug, succulent | ✅ M1-M2 (`build_env_workbench.py`) |
+| Tools: precision screwdriver, spudger, suction cup | ✅ M2 (`build_tools.py`) |
+| Tools: tweezers, brush, battery tester, multimeter | M3 |
 | Shop shell: floor, walls, big window, door with bell, counter with register, customer bench | M4 |
 | Dressing: shelves with part boxes, shop sign ("Mochi Fix"?), lucky cat, posters, lights, plants | M4 polish |
 | Customer: one stylized base body with swappable heads, hair and clothes; simple rig (idle, walk, talk); 2D expressive portraits | M4 |
@@ -145,12 +152,12 @@ Pivots match interactions: screws pivot on their axis, connectors on their hinge
 | # | Milestone | Objective | Done when |
 |---|---|---|---|
 | **M1** | **Interactive phone on a workbench** ✅ | Rotate, zoom and select phone components with the mouse | You can tumble and flip the phone, zoom to any screw, and click any part to see its name and description. Automated tests pass. |
-| **M2** | **Take it apart, put it back** | Tools + part states + rules + screw minigame + reassembly | With the screwdriver you unscrew 4 screws (hold-and-turn minigame), pry the cover, unplug the battery and lift it out, then reverse it. Wrong-order clicks give clear "nope" feedback. |
+| **M2** | **Take it apart, put it back** ✅ | Tools + part states + rules + screw minigame + reassembly | With the screwdriver you unscrew 4 screws (hold-and-turn minigame), pry the cover, unplug the battery and lift it out, then reverse it. Wrong-order clicks give clear "nope" feedback. |
 | **M3** | **Diagnose, replace, test** | One visible fault (cracked screen) and one hidden fault (dead battery), a spare-part inventory, power-on test | The player finds the dead battery with the tester, swaps the parts, and the phone boots with a cute logo. A quality score comes out of it. |
 | **M4** | **Customer and shop loop** | Shop scene, fixed shop camera, a customer walks in, portrait dialogue, accept job, blend to the bench, hand the phone back | The full loop works from door to bench to door with one scripted customer. |
 | **M5** | **Money and progression** | Payment from quality and time, wallet HUD, buy spares, one tool upgrade (electric screwdriver), save/load | Earn money, buy the upgrade, and the next screw minigame is visibly faster. Progress survives a restart. |
 
-The prototype is complete after M5. Each milestone ends with EditMode/PlayMode tests for its rules plus a manual checklist (see `Docs/M1_Workbench.md` for the format).
+The prototype is complete after M5. Each milestone ends with EditMode/PlayMode tests for its rules plus a manual checklist (see `Docs/M1_Workbench.md` and `Docs/M2_Disassembly.md`).
 
 ---
 
@@ -166,7 +173,7 @@ The prototype is complete after M5. Each milestone ends with EditMode/PlayMode t
   * Double-click or F frames the selected component.
 * **Shop mode (M4):** `FixedCameraView`, slightly isometric. Clicking a station asks the director to blend to that station's view.
 
-### Mouse and keyboard (M1)
+### Mouse and keyboard (M1 + M2)
 
 | Input | Action |
 |---|---|
@@ -179,8 +186,11 @@ The prototype is complete after M5. Each milestone ends with EditMode/PlayMode t
 | Middle drag | pan |
 | **Space** | flip over |
 | **R** | reset view |
+| **1-4** / tool bar | Hands · Screwdriver · Spudger · Suction Cup (M2) |
+| **Hold left on a part** | use the tool in hand: unscrew, pry, unplug, lift out, put back (M2) |
+| Screwdriver: **circle** while holding | counter-clockwise loosens faster, clockwise tightens (M2) |
 
-Left button = "hands/tools" on purpose: in M2 a left click or drag **on a part** becomes the tool action, so rotation lives on the right button.
+Left button = "hands/tools" on purpose: since M2, pressing **on a part** uses the tool in hand (a quick click with a tool that doesn't fit still just inspects), so rotation lives on the right button.
 
 ### Picking pipeline
 
@@ -193,9 +203,9 @@ Left button = "hands/tools" on purpose: in M2 a left click or drag **on a part**
 1. ✅ Project baseline: URP, folders, asmdefs, input, TMP, test assemblies.
 2. ✅ Art pipeline: Blender generator → FBX → import rules → prefab builder by slot name.
 3. ✅ **M1:** inspection camera, turntable, picking, selection, HUD.
-4. **Part states + rules** (pure C# with EditMode tests first), then one tool: a screwdriver that instantly removes screws. The loop becomes playable at this point.
-5. **Screw minigame + juice** (sound, particles, screws dropping into the tray). This is the game's signature "feel", so iterate on it early.
-6. Cover, connectors and battery, plus reassembly. **M2 done.**
+4. ✅ **Part states + rules** (pure C# with EditMode tests first), then one tool: a screwdriver that instantly removes screws. The loop becomes playable at this point.
+5. ✅ **Screw minigame + juice** (sound, flights, squash, screws dropping into the tray; particles still to come). This is the game's signature "feel", so iterate on it early.
+6. ✅ Cover, connectors and battery, plus reassembly. **M2 done.**
 7. Cracked screen → replace from inventory → power-on test. Hidden battery fault + tester. **M3 done.**
 8. Text-only customer stub to prove the job flow, then the shop scene, walk-in, and portraits. **M4 done.**
 9. Payment, wallet, one upgrade, save/load. **M5 done = prototype.**

@@ -40,10 +40,9 @@ namespace PhoneRepair.EditorTools
                 "Grabs a screen by its face and lifts it out. The 'thwop' is free."),
         };
 
-        /// <summary>Starting tool belt, in hotkey order.</summary>
+        /// <summary>Creates any missing tool assets; returns the starting tool belt in hotkey order.</summary>
         public static List<ToolDefinition> EnsureTools()
         {
-            var result = new List<ToolDefinition>();
             foreach (ToolSpec spec in Tools)
             {
                 var tool = EditorAssetUtil.LoadOrCreate<ToolDefinition>($"{Folder}/{spec.Asset}.asset", out bool created);
@@ -68,11 +67,31 @@ namespace PhoneRepair.EditorTools
                         EditorAssetUtil.Wire(tool, ("model", model));
                     }
                 }
+            }
+
+            AssetDatabase.SaveAssets();
+            return LoadTools();
+        }
+
+        /// <summary>
+        /// The tool assets as they are on disk now. Freshly created assets get reimported when saved,
+        /// which can leave earlier C# references pointing at dead objects, so wire scenes from this.
+        /// </summary>
+        public static List<ToolDefinition> LoadTools()
+        {
+            var result = new List<ToolDefinition>();
+            foreach (ToolSpec spec in Tools)
+            {
+                string path = $"{Folder}/{spec.Asset}.asset";
+                var tool = AssetDatabase.LoadAssetAtPath<ToolDefinition>(path);
+                if (tool == null)
+                {
+                    throw new System.InvalidOperationException($"Tool asset missing at {path}; run the setup again.");
+                }
 
                 result.Add(tool);
             }
 
-            AssetDatabase.SaveAssets();
             return result;
         }
 

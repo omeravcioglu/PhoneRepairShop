@@ -4,6 +4,7 @@
     "references": [
         "PhoneRepair.Runtime",
         "Unity.InputSystem",
+        "Unity.TextMeshPro",
         "Unity.InputSystem.TestFramework",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

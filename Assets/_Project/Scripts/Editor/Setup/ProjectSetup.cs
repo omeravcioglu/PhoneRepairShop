@@ -93,7 +93,7 @@ namespace PhoneRepair.EditorTools
             Step(5, "Mochi One data (parts, repair data, assembly rules)", () => definition = MochiOneDataSetup.EnsureData());
 
             List<ToolDefinition> tools = null;
-            Step(6, "Tools", () => tools = ToolDataSetup.EnsureTools());
+            Step(6, "Tools", () => ToolDataSetup.EnsureTools());
 
             GameObject phonePrefab = null;
             GameObject environmentPrefab = null;
@@ -106,7 +106,10 @@ namespace PhoneRepair.EditorTools
             VolumeProfile volume = null;
             Step(8, "Post-processing profile", () => volume = RenderPipelineSetup.EnsureWorkbenchVolumeProfile());
             Step(9, "Workbench scene", () =>
-                WorkbenchSceneBuilder.Build(phonePrefab, environmentPrefab, volume, MaterialLibrary.EnsureHighlightMaterial(), tools));
+            {
+                tools = ToolDataSetup.LoadTools(); // fresh references: earlier steps may have reimported them
+                WorkbenchSceneBuilder.Build(phonePrefab, environmentPrefab, volume, MaterialLibrary.EnsureHighlightMaterial(), tools);
+            });
 
             AssetDatabase.SaveAssets();
             Debug.Log($"[PhoneRepair] Phone model imported: {phoneModel.name} ({phoneModel.transform.childCount} parts at root), {tools.Count} tools.");

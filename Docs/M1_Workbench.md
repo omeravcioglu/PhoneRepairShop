@@ -2,6 +2,7 @@
 
 **Objective:** a basic scene with a phone on a workbench where the player can **rotate** the phone, **zoom in**, and **select a component** with the mouse.
 **Status:** implemented, built headlessly, covered by automated tests (see *Verification* at the end).
+**Since Milestone 2** the same scene also has tools, repair actions and a bigger HUD; see `Docs/M2_Disassembly.md`. Everything below still applies.
 
 ---
 
@@ -9,7 +10,7 @@
 
 1. Open the project in **Unity 6000.0.32f1** (Unity Hub).
 2. Open `Assets/_Project/Scenes/Sandbox/M1_Workbench.unity` and press **Play**.
-3. If the scene, prefabs or materials are ever missing or broken, run **Tools ▸ Phone Repair ▸ Run Milestone 1 Setup**. It's safe to repeat: it keeps existing materials and data assets, updates the prefabs in place, and **regenerates the scene**. Copy the scene before hand-editing it.
+3. If the scene, prefabs or materials are ever missing or broken, run **Tools ▸ Phone Repair ▸ Run Setup** (called *Run Milestone 1 Setup* before M2). It's safe to repeat: it keeps existing materials and data assets, updates the prefabs in place, and **regenerates the scene**. Copy the scene before hand-editing it.
 
 Already done for you (headless, by the setup):
 
@@ -39,6 +40,8 @@ Optional: **Player Settings ▸ Active Input Handling** is currently *Both*. Our
 | **Space** | flip the phone over |
 | **R** | reset phone and camera |
 | **Right click (no drag)** / **Esc** | deselect |
+
+Since M2, pressing on a part also uses the tool in hand (keys 1-4); with a tool that doesn't fit the part, it is still a plain select. See `Docs/M2_Disassembly.md`.
 
 ---
 
@@ -110,7 +113,7 @@ GameInput ──► WorkbenchController ──► InspectionTurntable   (rotate 
 CameraDirector (LateUpdate) ◄── active CameraView pose (+ blends)
 ```
 
-* **Click vs drag:** a press becomes a drag after 6 px. A right press without drag means deselect. A left drag that starts on a part is reserved for tools in M2.
+* **Click vs drag:** a press becomes a drag after 6 px. A right press without drag means deselect. A left press on a part selects it and, since M2, starts the tool action.
 * **The phone moves, not the camera.** The turntable lifts the phone exactly enough to clear the mat for its current rotation, and settles it flat when you release near flat.
 * **Zoom to cursor:** the rig is scaled about the point under the cursor (physics hit, else the focus plane), so that point stays fixed on screen. Focus is stored in the phone's local space and clamped to a radius that shrinks to 0 at max distance.
 * **Highlight:** an additive fresnel overlay (`PhoneRepair/Interactable Highlight` shader) re-renders the hovered/selected meshes. It works with any material and any submesh count, and never modifies them.

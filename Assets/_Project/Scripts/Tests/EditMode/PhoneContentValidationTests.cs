@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using PhoneRepair.Devices;
 using PhoneRepair.Interaction;
+using PhoneRepair.Repair;
 using UnityEditor;
 using UnityEngine;
 
@@ -20,7 +21,7 @@ namespace PhoneRepair.Tests
             var definition = AssetDatabase.LoadAssetAtPath<PhoneModelDefinition>(MochiOneDefinitionPath);
             if (definition == null || definition.Prefab == null)
             {
-                Assert.Ignore("Run Tools > Phone Repair > Run Milestone 1 Setup first.");
+                Assert.Ignore("Run Tools > Phone Repair > Run Setup first.");
             }
 
             return definition;
@@ -73,6 +74,11 @@ namespace PhoneRepair.Tests
             {
                 foreach (Transform child in part.transform)
                 {
+                    if (child.GetComponent<PhonePart>() != null)
+                    {
+                        continue; // a part riding on another part (the battery's connector) is checked as a part
+                    }
+
                     Bounds b = RendererBounds(child.gameObject);
                     Assert.That(phone.Contains(b.min) && phone.Contains(b.max), Is.True,
                         $"{part.name}/{child.name} sticks out of the phone ({b.min} .. {b.max}); check the FBX export axes");
@@ -93,6 +99,38 @@ namespace PhoneRepair.Tests
                 }
 
                 Assert.That(Vector3.Dot(t.up, Vector3.down), Is.GreaterThan(0.99f), $"{t.name}: local up should point out of the back (-Y)");
+            }
+        }
+
+        [Test]
+        public void EveryPart_HasRepairData_AndTheToolsItAsksForExist()
+        {
+            var kinds = new HashSet<ToolKind>();
+            foreach (string guid in AssetDatabase.FindAssets("t:ToolDefinition"))
+            {
+                kinds.Add(AssetDatabase.LoadAssetAtPath<ToolDefinition>(AssetDatabase.GUIDToAssetPath(guid)).Kind);
+            }
+
+            foreach (PartSlot slot in LoadMochiOne().Slots)
+            {
+                PartDefinition part = slot.part;
+                Assert.That(part.HasRepairData, Is.True, $"{slot.slotId}: no repair data");
+                if (part.DetachStyle == DetachStyle.Fixed)
+                {
+                    continue;
+                }
+
+                Assert.That(kinds, Does.Contain(part.DetachTool), $"{slot.slotId}: needs a {part.DetachTool} but no tool asset has that kind");
+                Assert.That(kinds, Does.Contain(part.AttachTool), $"{slot.slotId}: needs a {part.AttachTool} but no tool asset has that kind");
+                if (part.Interaction == PartInteraction.Screw)
+                {
+                    Assert.That(part.Category, Is.EqualTo(PartCategory.Fastener), $"{slot.slotId}: screws go to the screw tray");
+                }
+                else
+                {
+                    Assert.That(part.DetachSeconds, Is.GreaterThan(0f), slot.slotId);
+                    Assert.That(part.AttachSeconds, Is.GreaterThan(0f), slot.slotId);
+                }
             }
         }
 

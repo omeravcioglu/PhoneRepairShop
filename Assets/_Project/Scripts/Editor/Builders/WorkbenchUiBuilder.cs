@@ -33,7 +33,7 @@ namespace PhoneRepair.EditorTools
         private static readonly Color PillColor = EditorAssetUtil.Hex("#2B2433", 0.8f);
         private static readonly Color PillTextColor = EditorAssetUtil.Hex("#FFF8EF");
         private static readonly Color PillAccentColor = EditorAssetUtil.Hex("#F6B9C9");
-        private static readonly Color RingColor = EditorAssetUtil.Hex("#8ECDBD");
+        private static readonly Color RingColor = EditorAssetUtil.Hex("#F5B65C"); // amber: reads on the mint mat and the pink cover
 
         private static int UiLayer => LayerMask.NameToLayer("UI");
 
@@ -191,7 +191,7 @@ namespace PhoneRepair.EditorTools
             RectTransform rect = CreateRect(root, "ActionProgress");
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = new Vector2(46f, 46f);
+            rect.sizeDelta = new Vector2(58f, 58f);
             var group = rect.gameObject.AddComponent<CanvasGroup>();
             group.alpha = 0f;
             group.blocksRaycasts = false;
@@ -200,7 +200,7 @@ namespace PhoneRepair.EditorTools
             var track = CreateRect(rect, "Track").gameObject.AddComponent<Image>();
             Stretch((RectTransform)track.transform);
             track.sprite = ringSprite;
-            track.color = new Color(0.17f, 0.14f, 0.2f, 0.45f);
+            track.color = new Color(0.17f, 0.14f, 0.2f, 0.62f);
             track.raycastTarget = false;
 
             var fill = CreateRect(rect, "Fill").gameObject.AddComponent<Image>();
