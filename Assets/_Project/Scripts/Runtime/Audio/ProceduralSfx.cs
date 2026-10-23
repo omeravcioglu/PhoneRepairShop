@@ -32,7 +32,46 @@ namespace PhoneRepair.Audio
                 }),
                 [SfxId.Whoosh] = LowPassNoise("sfx_whoosh", 0.28f, random, t => Mathf.Pow(Mathf.Sin(Mathf.PI * t / 0.28f), 2f) * 0.22f),
                 [SfxId.Select] = Make("sfx_select", 0.04f, t => Mathf.Sin(Tau * 1400f * t) * Mathf.Exp(-t * 160f) * 0.35f),
+                [SfxId.Bell] = Make("sfx_bell", 0.9f, t => Bell(t, 1568f, 4.5f) * 0.4f),
+                [SfxId.DoorChime] = Make("sfx_door_chime", 0.75f, t =>
+                    Bell(t, 1319f, 6f) * 0.3f + (t > 0.18f ? Bell(t - 0.18f, 1047f, 5f) * 0.3f : 0f)),
+                [SfxId.Coin] = Make("sfx_coin", 0.35f, t =>
+                {
+                    float f = t < 0.07f ? 1976f : 2637f;
+                    float env = Mathf.Exp(-(t < 0.07f ? t : t - 0.07f) * 14f);
+                    return Square(f * t) * env * 0.16f + Noise(random) * Mathf.Exp(-t * 90f) * 0.12f;
+                }),
+                [SfxId.Blip] = Make("sfx_blip", 0.05f, t => Square(520f * t) * Mathf.Exp(-t * 45f) * 0.14f),
+                [SfxId.Swap] = Sweep("sfx_swap", 0.18f, 300f, 900f, t => Mathf.Exp(-t * 18f) * 0.4f),
+                [SfxId.Paper] = LowPassNoise("sfx_paper", 0.07f, random, t => Mathf.Exp(-t * 60f) * 0.5f),
+                [SfxId.Happy] = Make("sfx_happy", 0.42f, t => Arpeggio(t, new[] { 523f, 659f, 784f, 1047f }, 0.09f) * 0.22f),
+                [SfxId.Sad] = Make("sfx_sad", 0.7f, t =>
+                {
+                    float f = (t < 0.3f ? 392f : 330f) * (1f + 0.02f * Mathf.Sin(Tau * 6f * t));
+                    float local = t < 0.3f ? t : t - 0.3f;
+                    return Square(f * t) * Mathf.Exp(-local * 3.5f) * 0.12f;
+                }),
+                [SfxId.Meow] = Make("sfx_meow", 0.38f, t =>
+                {
+                    float u = t / 0.38f;
+                    float f = 620f + 420f * Mathf.Sin(Mathf.PI * u) - 120f * u;
+                    return Mathf.Sin(Tau * f * t) * Mathf.Sin(Mathf.PI * u) * 0.3f + Mathf.Sin(Tau * 2f * f * t) * Mathf.Sin(Mathf.PI * u) * 0.08f;
+                }),
             };
+        }
+
+        /// <summary>Inharmonic partials with a quick decay: counter bells and door chimes.</summary>
+        private static float Bell(float t, float f, float decay) =>
+            (Mathf.Sin(Tau * f * t) + 0.5f * Mathf.Sin(Tau * f * 2.76f * t) * Mathf.Exp(-t * 6f)) * Mathf.Exp(-t * decay);
+
+        /// <summary>Soft square wave (cycles = frequency × time).</summary>
+        private static float Square(float cycles) => (float)Math.Tanh(4f * Mathf.Sin(Tau * cycles));
+
+        private static float Arpeggio(float t, float[] notes, float step)
+        {
+            int index = Mathf.Min(notes.Length - 1, Mathf.FloorToInt(t / step));
+            float local = t - index * step;
+            return Square(notes[index] * t) * Mathf.Exp(-local * 12f);
         }
 
         private const float Tau = Mathf.PI * 2f;

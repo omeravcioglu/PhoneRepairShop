@@ -28,6 +28,7 @@ namespace PhoneRepair.Controls
         private InputAction resetView;
         private InputAction focus;
         private InputAction cancel;
+        private InputAction confirm;
         private InputAction[] toolSlots;
         private InputAction[] actions;
 
@@ -75,6 +76,9 @@ namespace PhoneRepair.Controls
         public bool FocusPressedThisFrame => focus.WasPressedThisFrame();
         public bool CancelPressedThisFrame => cancel.WasPressedThisFrame();
 
+        /// <summary>Enter: continue dialogue, hand the phone back.</summary>
+        public bool ConfirmPressedThisFrame => confirm.WasPressedThisFrame();
+
         /// <summary>Tool hotkey pressed this frame (0 = key 1), or -1 for none.</summary>
         public int ToolSlotPressedThisFrame
         {
@@ -115,6 +119,8 @@ namespace PhoneRepair.Controls
             resetView = new InputAction("ResetView", InputActionType.Button, "<Keyboard>/r");
             focus = new InputAction("Focus", InputActionType.Button, "<Keyboard>/f");
             cancel = new InputAction("Cancel", InputActionType.Button, "<Keyboard>/escape");
+            confirm = new InputAction("Confirm", InputActionType.Button, "<Keyboard>/enter");
+            confirm.AddBinding("<Keyboard>/numpadEnter");
 
             toolSlots = new InputAction[6];
             for (int i = 0; i < toolSlots.Length; i++)
@@ -126,7 +132,7 @@ namespace PhoneRepair.Controls
             var all = new System.Collections.Generic.List<InputAction>
             {
                 point, primary, secondary, tertiary, scroll,
-                rotate, flip, resetView, focus, cancel
+                rotate, flip, resetView, focus, cancel, confirm
             };
             all.AddRange(toolSlots);
             actions = all.ToArray();

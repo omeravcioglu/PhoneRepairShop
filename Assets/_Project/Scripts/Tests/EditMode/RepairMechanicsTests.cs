@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using PhoneRepair.Devices;
 using PhoneRepair.Repair;
+using UnityEditor;
 using UnityEngine;
 
 namespace PhoneRepair.Tests
@@ -66,95 +67,116 @@ namespace PhoneRepair.Tests
             Assert.That(total, Is.EqualTo(0.12f).Within(1e-3f));
         }
 
-        // ------------------------------------------------------------------ parts area
+        // ------------------------------------------------------------------ parts tray (2D)
 
-        private static PhonePart MakePart(string name, Vector3 size)
+        private static PhonePart MakePart(string name, int width, int height, PartCategory category)
         {
-            var root = new GameObject(name);
-            GameObject mesh = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Object.DestroyImmediate(mesh.GetComponent<Collider>());
-            mesh.transform.SetParent(root.transform, false);
-            mesh.transform.localScale = size;
-            return root.AddComponent<PhonePart>();
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f), 1f);
+            var go = new GameObject(name);
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            PhonePart part = go.AddComponent<PhonePart>();
+            var definition = ScriptableObject.CreateInstance<PartDefinition>();
+            var definitionData = new SerializedObject(definition);
+            definitionData.FindProperty("category").intValue = (int)category;
+            definitionData.ApplyModifiedPropertiesWithoutUndo();
+            var partData = new SerializedObject(part);
+            partData.FindProperty("definition").objectReferenceValue = definition;
+            partData.ApplyModifiedPropertiesWithoutUndo();
+            var view = go.AddComponent<PartView2D>();
+            var viewData = new SerializedObject(view);
+            viewData.FindProperty("part").objectReferenceValue = part;
+            viewData.FindProperty("normal").objectReferenceValue = sprite;
+            viewData.ApplyModifiedPropertiesWithoutUndo();
+            return part;
         }
 
-        private static PartsArea MakeArea(out GameObject root)
+        private static PartsTray2D MakeTray(out GameObject root)
         {
-            var areaRoot = new GameObject("Area");
-            root = areaRoot;
-            var area = areaRoot.AddComponent<PartsArea>();
+            var trayRoot = new GameObject("Tray");
+            root = trayRoot;
+            var tray = trayRoot.AddComponent<PartsTray2D>();
             Transform Spot(string n, float x)
             {
                 var t = new GameObject(n).transform;
-                t.SetParent(areaRoot.transform, false);
+                t.SetParent(trayRoot.transform, false);
                 t.localPosition = new Vector3(x, 0f, 0f);
                 return t;
             }
 
-            area.AddSlot(Spot("Small", 0f), new Vector2(0.05f, 0.05f), false);
-            area.AddSlot(Spot("Medium", 1f), new Vector2(0.1f, 0.1f), false);
-            area.AddSlot(Spot("Tall", 2f), new Vector2(0.04f, 0.09f), false);
-            area.AddSlot(Spot("Tray", 3f), new Vector2(0.03f, 0.03f), true);
-            return area;
+            tray.AddSpot(Spot("Small", 0f), new Vector2Int(50, 50), false, 380);
+            tray.AddSpot(Spot("Medium", 100f), new Vector2Int(90, 110), false, 380);
+            tray.AddSpot(Spot("Big", 200f), new Vector2Int(100, 196), false, 380);
+            tray.AddSpot(Spot("Screw", 300f), new Vector2Int(40, 28), true, 390);
+            return tray;
         }
 
-        [Test]
-        public void Parts_GoToTheSmallestSpotTheyFit_AndRestOnIt()
+        private static void Destroy(params Object[] things)
         {
-            PartsArea area = MakeArea(out GameObject areaRoot);
-            PhonePart part = MakePart("Part", new Vector3(0.06f, 0.01f, 0.04f));
-            try
+            foreach (Object thing in things)
             {
-                Assert.That(area.TryReserve(part, out PartsArea.Slot slot, out Pose pose), Is.True);
-                Assert.That(slot.Anchor.name, Is.EqualTo("Medium"), "too big for Small, Medium is the smallest that fits");
-                Assert.That(pose.position.y, Is.EqualTo(0.005f).Within(1e-4f), "bottom face rests on the anchor");
-                Assert.That(area.Holds(part), Is.True);
-
-                area.Release(part);
-                Assert.That(area.Holds(part), Is.False);
-            }
-            finally
-            {
-                Object.DestroyImmediate(part.gameObject);
-                Object.DestroyImmediate(areaRoot);
+                if (thing != null)
+                {
+                    Object.DestroyImmediate(thing is Component c ? c.gameObject : thing);
+                }
             }
         }
 
         [Test]
-        public void LongParts_TurnNinetyDegreesToFit()
+        public void Parts_GoToTheSmallestSpotTheyFit_CentredOnIt()
         {
-            PartsArea area = MakeArea(out GameObject areaRoot);
-            PhonePart medium = MakePart("Blocker", new Vector3(0.09f, 0.01f, 0.09f));
-            PhonePart longPart = MakePart("Long", new Vector3(0.08f, 0.01f, 0.03f));
+            PartsTray2D tray = MakeTray(out GameObject root);
+            PhonePart battery = MakePart("Battery", 64, 84, PartCategory.Battery);
             try
             {
-                Assert.That(area.TryReserve(medium, out _, out _), Is.True, "fills Medium");
-                Assert.That(area.TryReserve(longPart, out PartsArea.Slot slot, out Pose pose), Is.True);
-                Assert.That(slot.Anchor.name, Is.EqualTo("Tall"));
-                Assert.That(Quaternion.Angle(pose.rotation, Quaternion.Euler(0f, 90f, 0f)), Is.LessThan(0.1f));
+                Assert.That(tray.TryReserve(battery, out PartsTray2D.Spot spot, out Vector3 local), Is.True);
+                Assert.That(spot.Anchor.name, Is.EqualTo("Medium"), "too big for Small; Medium is the smallest that fits");
+                Assert.That(local, Is.EqualTo(Vector3.zero), "a centred sprite rests on the anchor");
+                Assert.That(tray.Holds(battery), Is.True);
+
+                tray.Release(battery);
+                Assert.That(tray.Holds(battery), Is.False);
             }
             finally
             {
-                Object.DestroyImmediate(medium.gameObject);
-                Object.DestroyImmediate(longPart.gameObject);
-                Object.DestroyImmediate(areaRoot);
+                Destroy(battery, root);
+            }
+        }
+
+        [Test]
+        public void Screws_GoToTheScrewTray_AndBigPartsToTheBigSpot()
+        {
+            PartsTray2D tray = MakeTray(out GameObject root);
+            PhonePart screw = MakePart("Screw", 9, 9, PartCategory.Fastener);
+            PhonePart cover = MakePart("Cover", 96, 192, PartCategory.Cover);
+            try
+            {
+                Assert.That(tray.TryReserve(screw, out PartsTray2D.Spot screwSpot, out _), Is.True);
+                Assert.That(screwSpot.Anchor.name, Is.EqualTo("Screw"));
+                Assert.That(tray.TryReserve(cover, out PartsTray2D.Spot coverSpot, out _), Is.True);
+                Assert.That(coverSpot.Anchor.name, Is.EqualTo("Big"));
+                Assert.That(tray.Occupants, Is.EquivalentTo(new[] { screw, cover }));
+            }
+            finally
+            {
+                Destroy(screw, cover, root);
             }
         }
 
         [Test]
         public void WhenNothingFits_ThereIsNoRoom()
         {
-            PartsArea area = MakeArea(out GameObject areaRoot);
-            PhonePart huge = MakePart("Huge", new Vector3(0.3f, 0.01f, 0.3f));
+            PartsTray2D tray = MakeTray(out GameObject root);
+            PhonePart huge = MakePart("Huge", 300, 300, PartCategory.Other);
             try
             {
-                Assert.That(area.HasRoomFor(huge), Is.False);
-                Assert.That(area.TryReserve(huge, out _, out _), Is.False);
+                Assert.That(tray.HasRoomFor(huge), Is.False);
+                Assert.That(tray.TryReserve(huge, out _, out _), Is.False);
             }
             finally
             {
-                Object.DestroyImmediate(huge.gameObject);
-                Object.DestroyImmediate(areaRoot);
+                Destroy(huge, root);
             }
         }
     }

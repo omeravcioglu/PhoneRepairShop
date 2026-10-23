@@ -55,12 +55,12 @@ No Asset Store content. The only third-party content is **TextMesh Pro's** essen
 
 ## Docs
 
-- [`Docs/00_Prototype_Plan.md`](Docs/00_Prototype_Plan.md): the plan for the first playable prototype, covering the folder structure, systems and milestones
-- [`Docs/M1_Workbench.md`](Docs/M1_Workbench.md): Milestone 1, covering controls, the scene, how it works, testing and a verification log
-- [`ArtSource/Blender/README.md`](ArtSource/Blender/README.md): the Blender pipeline
+- `Docs/00_Prototype_Plan.md`: the plan for the first playable prototype, covering the folder structure, systems and milestones
+- `Docs/M1_Workbench.md`: Milestone 1, covering controls, the scene, how it works, testing and a verification log
+- `ArtSource/Blender/README.md`: the Blender pipeline
 
 ## About this repository
 
-This public repository is a **showcase**. It contains the documentation and the **105 source files I wrote** for this project. The complete Unity project, with the models, the generated .blend files and its Unity Cloud link, is kept in a private repository.
+This public repository is a **showcase**. It contains the documentation and the **83 source files I wrote** for this project. The complete Unity project, with the models, the generated .blend files and its Unity Cloud link, is kept in a private repository.
 
 Copyright © Omer Avcioglu (McHunter Studio). **All rights reserved.** Viewing only; see [LICENSE](LICENSE).

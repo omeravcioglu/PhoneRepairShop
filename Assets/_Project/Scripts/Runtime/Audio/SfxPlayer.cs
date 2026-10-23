@@ -14,6 +14,15 @@ namespace PhoneRepair.Audio
         Nope = 5,     // not allowed yet
         Whoosh = 6,   // part flying
         Select = 7,   // light UI/grab tick
+        Bell = 8,     // counter bell: "done!"
+        DoorChime = 9, // the shop door opens
+        Coin = 10,    // money in
+        Blip = 11,    // one talk blip (pitch = the customer's voice)
+        Swap = 12,    // a broken part goes into the box, a new one comes out
+        Paper = 13,   // buttons, panels
+        Happy = 14,   // little rising jingle
+        Sad = 15,     // goofy "wah-wah"
+        Meow = 16,    // the shop cat
     }
 
     /// <summary>
