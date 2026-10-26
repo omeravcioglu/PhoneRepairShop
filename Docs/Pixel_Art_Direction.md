@@ -2,7 +2,7 @@
 
 The S2 art: every sprite in the art contract, drawn as pixel art at its exact size, plus the logo and
 three pixel fonts. The canvas with all of it (cover, rules, 8 screen mockups, sprite boards, the cast)
-is the Design artifact <>; the old 3D boards are on
+is the Design artifact; the old 3D boards are on
 its "Archive — 3D Pocket Diorama" page.
 
 ## The name
