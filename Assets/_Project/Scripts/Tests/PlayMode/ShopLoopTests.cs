@@ -421,7 +421,12 @@ namespace PhoneRepair.Tests
         private IEnumerator Confirm(PanelView panel)
         {
             yield return WaitUntil(() => panel.IsReady, 3f, $"{panel.name} ready");
-            yield return Tap(keyboard.enterKey);
+            // a simulated tap can fall between input updates and go unseen; tap again only if the panel didn't react
+            for (int attempt = 0; attempt < 5 && panel.IsOpen && !panel.Confirmed; attempt++)
+            {
+                yield return Tap(keyboard.enterKey);
+                yield return Frames(2);
+            }
         }
 
         /// <summary>Opens the shop, takes Fumi's job and waits until the camera is at the bench.</summary>

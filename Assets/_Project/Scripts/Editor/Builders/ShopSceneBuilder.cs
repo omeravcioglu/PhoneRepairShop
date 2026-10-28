@@ -26,12 +26,13 @@ namespace PhoneRepair.EditorTools
     {
         public const string ScenePath = "Assets/_Project/Scenes/Shop.unity";
 
-        private static readonly Color DeepNavy = new(0.11f, 0.153f, 0.2f, 1f);
-        private static readonly Color Navy = new(0.157f, 0.216f, 0.278f, 1f);
-        private static readonly Color Cream = new(0.96f, 0.91f, 0.83f, 1f);
-        private static readonly Color Ink = new(0.157f, 0.216f, 0.278f, 1f);
-        private static readonly Color Mint = new(0.66f, 0.9f, 0.81f, 1f);
-        private static readonly Color Shadow = new(0.11f, 0.153f, 0.2f, 0.85f);
+        // text colours from the art palette (ArtSource/Pixel/Scripts/px.py): ink 0, ink 1, rice 4, teal 5
+        private static readonly Color DeepNavy = new Color32(22, 20, 31, 255);
+        private static readonly Color Navy = new Color32(38, 40, 64, 255);
+        private static readonly Color Cream = new Color32(249, 242, 227, 255);
+        private static readonly Color Ink = new Color32(38, 40, 64, 255);
+        private static readonly Color Mint = new Color32(192, 234, 214, 255);
+        private static readonly Color Shadow = new(22 / 255f, 20 / 255f, 31 / 255f, 0.85f);
 
         private static Material spriteMaterial;
         private static PixelFont font;
@@ -354,13 +355,16 @@ namespace PhoneRepair.EditorTools
             int top = size.y / 2 - 12;
             if (withLogo)
             {
-                PixelText logo = Text("Logo", go.transform, centre + new Vector3(0f, top, 0f), "PHONE FIXER", Navy, PixelText.Align.Center, SortOrder.PanelText);
-                logo.Scale = 3;
-                logo.ShadowColor = new Color(0.96f, 0.65f, 0.35f, 1f);
-                top -= 40;
+                // the logo's top sits 4 px above the first text line; the welcome text starts under it
+                SpriteRenderer logo = Sprite("Logo", go.transform, PixelArtSetup.LoadSprite("ui_logo"), SortOrder.PanelText);
+                logo.transform.position = centre + new Vector3(0f, top - 36f, 0f);
+                top -= 74;
             }
 
-            PixelText body = Text("Body", go.transform, centre + new Vector3(0f, top, 0f), string.Empty, Ink, PixelText.Align.Center, SortOrder.PanelText);
+            // a long tips line wraps inside the paper; wrapped text is laid out from the box's left edge
+            int wrap = size.x - 32;
+            PixelText body = Text("Body", go.transform, centre + new Vector3(-(wrap / 2), top, 0f), string.Empty, Ink, PixelText.Align.Center, SortOrder.PanelText);
+            body.WrapWidth = wrap;
             PixelButton button = CreateButton(go.transform, "Button", centre + new Vector3(0f, -size.y / 2f + 22f, 0f), "OK  [Enter]", "Click");
             const int lift = SortOrder.Panels - SortOrder.Ui + 30; // above the paper
             foreach (SpriteRenderer r in button.GetComponentsInChildren<SpriteRenderer>(true))

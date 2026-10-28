@@ -22,6 +22,8 @@ namespace PhoneRepair.EditorTools
     /// </summary>
     public static class ProjectSetup
     {
+        public const string GameTitle = "Have You Tried Rice?";
+
         private const int StepCount = 9;
 
         [MenuItem("Tools/Phone Repair/Run Setup", priority = 0)]
@@ -74,7 +76,11 @@ namespace PhoneRepair.EditorTools
 
         public static void Run()
         {
-            Step(1, "2D render pipeline", () => Pipeline2DSetup.EnsurePipeline());
+            Step(1, "2D render pipeline and game title", () =>
+            {
+                Pipeline2DSetup.EnsurePipeline();
+                PlayerSettings.productName = GameTitle;
+            });
 
             Material spriteMaterial = null;
             Step(2, "Sprite material", () => spriteMaterial = Pipeline2DSetup.EnsureSpriteMaterial());

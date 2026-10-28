@@ -1,4 +1,4 @@
-# Phone Fixer: game plan (2D pixel art, behind the counter)
+# Have You Tried Rice?: game plan (2D pixel art, behind the counter)
 
 **Engine:** Unity 6000.0.32f1 (Unity 6 LTS), URP 17.0.3 with the **2D Renderer** and Pixel Perfect Camera, Input System 1.11.2
 **Look:** pixel art at **640×360**, shown 3× on 1080p (4× 1440p, 6× 4K)
@@ -60,15 +60,15 @@ Title ─► Day N
 | # | Milestone | Done when |
 |---|---|---|
 | **S1** | **Shop and bench, playable loop** ✅ | Customers walk in, talk, and hand over phones. A battery or screen repair works start to finish on the bench, they pay, and the day ends with a summary. Placeholder art, plus the art contract. Automated tests pass headlessly. See `Docs/S1_Shop2D.md`. |
-| **S2** | **Art pass from the art artifact** | Every contract sprite is real art; real font; palette; the shop has a mood (2D lights optional). The game reads at 1080p. *All 103 sprites drawn 2026-10-22 in `ArtSource/Pixel/Art` (see `Docs/Pixel_Art_Direction.md`); not installed in the game yet.* |
+| **S2** | **Art pass from the art artifact** | Every contract sprite is real art; real font; palette; the shop has a mood (2D lights optional). The game reads at 1080p. *Art installed 2026-10-27: every contract sprite plus the logo, the 5×7 font and the palette's text colours (see `Docs/Pixel_Art_Direction.md`). 2D lights not done.* |
 | **S3** | **Diagnosis and more faults** | Hidden faults that need a tool to find (a dead battery that looks fine, which needs a tester), a cleaning minigame (lint in the port), a second phone, customer patience, and tips that depend on speed. |
 | **S4** | **Money and progression** | Spare parts cost money, prices and haggling, upgrades (electric screwdriver, a second spot, a bigger mat), save/load. |
 | **S5** | **Content and polish** | More customers and days with recurring characters and running gags, music, settings, a Steam demo build. |
 
 ## 6. Open decisions (yours)
 
-- **Title.** Decided 2026-10-22: **Have You Tried Rice?** The logo sprite is drawn; the title card still writes "PHONE FIXER" as text until it is wired in.
-- **Font.** The placeholder is a hand-made 5×7 pixel font with no Japanese. A designed pixel font (an OFL font such as DotGothic16 has Japanese) needs your OK to download.
+- **Title.** Decided 2026-10-22: **Have You Tried Rice?** The title card shows the logo sprite, and the Unity product name is set by Run Setup.
+- **Font.** The game uses the art's hand-made 5×7 face ("Rice 5x7"); it has no Japanese. A pixel font with Japanese (an OFL font such as DotGothic16) needs your OK to download.
 - **Do you ever see the shopkeeper?** Currently no: the camera is the shopkeeper's eyes and hands.
 - **Days and pacing.** The calendar is a fixed 3-day cycle of 3 customers. S3 and S4 can add random arrivals and patience.
 

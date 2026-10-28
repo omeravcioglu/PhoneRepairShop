@@ -106,6 +106,6 @@ No Asset Store content. The game's text uses its own bitmap font; TextMesh Pro's
 
 ## About this repository
 
-This public repository is a **showcase**. It contains the documentation and the **95 source files I wrote** for this project. The complete Unity project, with the sprites, the earlier 3D version and its Unity Cloud link, is kept in a private repository.
+This public repository is a **showcase**. It contains the documentation and the **96 source files I wrote** for this project. The complete Unity project, with the sprites, the earlier 3D version and its Unity Cloud link, is kept in a private repository.
 
 Copyright © Omer Avcioglu (McHunter Studio). **All rights reserved.** Viewing only; see [LICENSE](LICENSE).

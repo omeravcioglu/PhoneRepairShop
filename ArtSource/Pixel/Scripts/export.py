@@ -63,6 +63,7 @@ def builders() -> dict[str, list[px.Canvas] | px.Canvas]:
         "ui_tool_slot": [ui.tool_slot(False), ui.tool_slot(True)],
         "ui_ring": [ui.ring(k) for k in range(9)],
         "ui_portrait_frame": ui.portrait_frame(),
+        "ui_logo": ui.logo(256, 80, tagline=False),
     }
     for name, fn in P.LAYERS.items():
         out[name] = fn()
@@ -78,7 +79,6 @@ def builders() -> dict[str, list[px.Canvas] | px.Canvas]:
 
 def proposed() -> dict[str, px.Canvas]:
     return {
-        "UI/ui_logo": ui.logo(256, 80, tagline=False),
         "UI/ui_logo_tagline": ui.logo(256, 104, tagline=True),
     }
 
@@ -118,10 +118,8 @@ def export(install: bool = False) -> list[str]:
     if install:
         root = os.path.join(scene.ROOT, spec["root"].replace("/", os.sep))
         for path in written:
-            rel = os.path.relpath(path, ART)
-            dst = os.path.join(root, rel)
-            if not os.path.exists(dst):
-                raise SystemExit(f"No placeholder at {dst}: names must match the contract")
+            dst = os.path.join(root, os.path.relpath(path, ART))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copyfile(path, dst)
     return written
 

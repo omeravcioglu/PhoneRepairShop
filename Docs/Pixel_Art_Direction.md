@@ -72,15 +72,22 @@ python export.py --install
 The first writes `Art/` and the sheets. The second also copies the PNGs over the placeholders in
 `Assets/_Project/Art/Pixel/`; then run **Tools > Phone Repair > Run Setup** in Unity.
 
-## Proposed contract changes
+## In the game (2026-10-27)
 
-- **`UI/ui_logo.png`, 256×80.** The title card draws it instead of the "PHONE FIXER" text
-  (`ShopSceneBuilder.CreatePanel`).
-- **The 5×7 face as the game font.** It has the same cell and metrics as `PixelGlyphs`, so the
-  atlas can be swapped without layout changes.
+- **All contract sprites** are installed in `Assets/_Project/Art/Pixel/` (`python export.py --install`,
+  then Run Setup).
+- **`UI/ui_logo.png`, 256×80**, is in the contract now. The title card draws it above the welcome
+  text (`ShopSceneBuilder.CreatePanel`), and Run Setup sets the product name to the title.
+- **The font** is the 5×7 face. `python font_export.py` writes `pxfont.SMALL` into
+  `PixelGlyphs.cs`, keeping the old glyph for the eight characters the art font lacks: dollar, at,
+  backslash, backtick, both braces, the bar and the em dash.
+  Run Setup rebuilds the atlas.
+- **UI text colours** in the scene builder are the palette's `ink 0`, `ink 1`, `rice 4` and `teal 5`.
+- **Screenshots** of the game with the art, captured by the PlayMode capture test, are in
+  `Docs/Images/S2/`.
+
+## Still open
+
 - **Far-away customer sprites.** The doorway shows the counter sprite at half size by dropping every
   other pixel. It works, but details break up; a hand-drawn 48×80 "far" frame per customer would be
   cleaner.
-- **UI text colours.** The builder's Cream, Ink and Mint are close to the palette's `rice 4`
-  (#f9f2e3), `ink 1` (#262840) and `teal 5` (#c0ead6); matching them exactly would tie the text to
-  the art.
