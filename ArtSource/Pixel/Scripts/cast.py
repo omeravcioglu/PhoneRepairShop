@@ -24,6 +24,7 @@ from figure import Figure
 W, H = 96, 160
 COUNTER_ROW = 92          # first image row hidden by the counter top at the counter anchor
 FW = FH = 48              # bench face size
+GG_PRINT = True           # the letters on Ren's hoodie; the Steam art turns them off (no words on capsules)
 
 
 # --------------------------------------------------------------------------------------------------
@@ -642,7 +643,8 @@ def ren_body(expr: str = "idle") -> px.Canvas:
     del gg
     for (x, y) in ((42, s0 + 21), (43, s0 + 20), (44, s0 + 20), (42, s0 + 22), (42, s0 + 23), (43, s0 + 24), (44, s0 + 24), (44, s0 + 23),
                    (48, s0 + 21), (49, s0 + 20), (50, s0 + 20), (48, s0 + 22), (48, s0 + 23), (49, s0 + 24), (50, s0 + 24), (50, s0 + 23)):
-        fig.put(x, y, px.C("teal", 4))
+        if GG_PRINT:
+            fig.put(x, y, px.C("teal", 4))
     # drawstrings
     for sx in (-1, 1):
         fig.solid(px.box(W, H, cx + sx * 4, s0 + 3, cx + sx * 4, s0 + 13), px.C("rice", 4))

@@ -61,6 +61,7 @@ lights lean warm.
 | `scene.py`, `mockups.py` | Places sprites exactly as the scene builder does and composes the screens |
 | `export.py` | Writes `Art/`, checks every file against `art_contract.json` (size, frames, clear border) |
 | `canvas_assets.py` | Composites for the canvas |
+| `store_assets.py` | Steam store and library art in `Marketing/Steam/`, drawn with prop labels and signs blank (Steam allows no words but the logo) |
 
 Run from `ArtSource/Pixel/Scripts` (Python 3.12 with Pillow, NumPy, SciPy):
 

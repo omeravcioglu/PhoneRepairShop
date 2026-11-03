@@ -326,34 +326,36 @@ def rice_bowl_phone(w: int, h: int, cx: float, cy: float, scale: float = 1.0) ->
     return out
 
 
-def logo(w: int = 256, h: int = 104, dark: bool = False, tagline: bool = True) -> px.Canvas:
-    """The title lockup. 256x104 with the tagline, 256x80 without."""
+def logo(w: int = 256, h: int = 104, dark: bool = False, tagline: bool = True, scale: float = 1.0) -> px.Canvas:
+    """The title lockup. 256x104 with the tagline, 256x80 without. scale draws the lettering and the
+    emblem bigger at native resolution (the store capsules); the canvas has to grow with it."""
     cv = px.Canvas(w, h)
     face = px.C("rice", 5)
     ink = px.C("ink", 1)
     extrude = px.C("ink", 0)
+    s = scale
     # line 1
     l1 = "HAVE YOU"
-    cap1, r1 = 15, 2.0
-    w1 = F.stroke_width(l1, cap1, r1, 1.5)
+    cap1, r1 = 15 * s, 2.0 * s
+    w1 = F.stroke_width(l1, cap1, r1, 1.5 * s)
     # line 2
     l2 = "TRIED RICE?"
-    cap2, r2 = 25, 3.1
-    w2 = F.stroke_width(l2, cap2, r2, 2.0)
+    cap2, r2 = 25 * s, 3.1 * s
+    w2 = F.stroke_width(l2, cap2, r2, 2.0 * s)
     x2 = (w - w2) / 2
-    y1, y2 = 26, 47
-    bowl_r, gap = 13.2, 5
+    y1, y2 = 26 * s, 47 * s
+    bowl_r, gap = 13.2 * s, 5 * s
     left = (w - (2 * bowl_r + gap + w1)) / 2
     bowl_cx = left + bowl_r
     x1 = bowl_cx + bowl_r + gap
-    m1 = F.stroke_text(w, h, x1, y1, l1, cap1, r1, 1.5)
-    m2, letters2 = F.stroke_text(w, h, x2, y2, l2, cap2, r2, 2.0, per_letter=True)
+    m1 = F.stroke_text(w, h, x1, y1, l1, cap1, r1, 1.5 * s)
+    m2, letters2 = F.stroke_text(w, h, x2, y2, l2, cap2, r2, 2.0 * s, per_letter=True)
     q = letters2[-1]
     rice_word = letters2[6] | letters2[7] | letters2[8] | letters2[9]
     text = m1 | m2
     # extrusion: 3 px down, then outline everything
     ext = px.empty(w, h)
-    for k in range(1, 4):
+    for k in range(1, round(3 * s) + 1):
         ext |= px.shift(text, 0, k)
     cv.fill(px.outer(text | ext, True), ink)
     cv.fill(ext & ~text, extrude)
@@ -368,7 +370,7 @@ def logo(w: int = 256, h: int = 104, dark: bool = False, tagline: bool = True) -
     cv.fill(q & px.edge(q, 0, 1, 2), px.C("orange", 2))
     cv.fill(q & px.edge(q, 0, -1, 1), px.C("orange", 4))
     # emblem: the bowl with the phone, tucked before HAVE YOU
-    emblem = rice_bowl_phone(w, h, bowl_cx, 33, 0.85)
+    emblem = rice_bowl_phone(w, h, bowl_cx, 33 * s, 0.85 * s)
     cv.blit(emblem, 0, 0)
     # tagline
     if tagline:
